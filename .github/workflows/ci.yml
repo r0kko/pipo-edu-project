@@ -31,13 +31,10 @@ jobs:
         run: go test ./...
 
       - name: Frontend install
-        working-directory: frontend
-        run: npm install
+        run: npm --prefix frontend install
 
       - name: Frontend lint
-        working-directory: frontend
-        run: npm run lint
+        run: npm --prefix frontend run lint
 
       - name: Frontend build
-        working-directory: frontend
-        run: npm run build
+        run: npm --prefix frontend run build

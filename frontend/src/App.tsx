@@ -1,11 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import type { ReactElement } from 'react';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import GuardDashboard from './pages/GuardDashboard';
 import ResidentDashboard from './pages/ResidentDashboard';
 import { authStore } from './store/auth';
 
-function RequireAuth({ role, children }: { role?: string; children: JSX.Element }) {
+function RequireAuth({ role, children }: { role?: string; children: ReactElement }) {
   const user = authStore.getUser();
   if (!user) {
     return <Navigate to="/login" replace />;
