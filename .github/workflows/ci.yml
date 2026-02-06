@@ -31,7 +31,7 @@ jobs:
         run: go test ./...
 
       - name: Frontend install
-        run: npm --prefix frontend install
+        run: npm --prefix frontend ci
 
       - name: Frontend lint
         run: npm --prefix frontend run lint

@@ -3,7 +3,8 @@ ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
 WORKDIR /app
 COPY frontend/package.json ./
-RUN npm install
+COPY frontend/package-lock.json ./
+RUN npm ci
 COPY frontend ./
 RUN npm run build
 
