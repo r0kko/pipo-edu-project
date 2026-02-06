@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS entry_logs;
+DROP TABLE IF EXISTS guest_requests;
+DROP TABLE IF EXISTS passes;
+DROP TABLE IF EXISTS users;

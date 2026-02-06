@@ -1,0 +1,651 @@
+openapi: 3.0.3
+info:
+  title: Pipo Pass Management API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+  /auth/refresh:
+    post:
+      summary: Refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+  /users:
+    get:
+      summary: List users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: includeDeleted
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      summary: Create user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/{id}:
+    get:
+      summary: Get user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    patch:
+      summary: Update user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      summary: Soft delete user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Deleted
+  /users/{id}/restore:
+    post:
+      summary: Restore user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Restored
+  /passes:
+    get:
+      summary: List passes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: includeDeleted
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Passes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pass'
+    post:
+      summary: Create pass
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PassRequest'
+      responses:
+        '201':
+          description: Pass
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pass'
+  /passes/{id}:
+    get:
+      summary: Get pass
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Pass
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pass'
+    patch:
+      summary: Update pass
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PassRequest'
+      responses:
+        '200':
+          description: Pass
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pass'
+    delete:
+      summary: Soft delete pass
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Deleted
+  /passes/{id}/restore:
+    post:
+      summary: Restore pass
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Restored
+  /passes/search:
+    get:
+      summary: Search passes by plate
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: plate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Passes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pass'
+  /passes/{id}/entry:
+    post:
+      summary: Register entry
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryRequest'
+      responses:
+        '201':
+          description: Entry log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryLog'
+  /passes/{id}/exit:
+    post:
+      summary: Register exit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryRequest'
+      responses:
+        '201':
+          description: Entry log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryLog'
+  /guest-requests:
+    get:
+      summary: List guest requests
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: includeDeleted
+          schema:
+            type: boolean
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Guest requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GuestRequest'
+    post:
+      summary: Create guest request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestRequestPayload'
+      responses:
+        '201':
+          description: Guest request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestRequest'
+  /guest-requests/{id}:
+    get:
+      summary: Get guest request
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Guest request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestRequest'
+    patch:
+      summary: Update guest request
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestRequestPayload'
+      responses:
+        '200':
+          description: Guest request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestRequest'
+    delete:
+      summary: Soft delete guest request
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Deleted
+  /guest-requests/{id}/restore:
+    post:
+      summary: Restore guest request
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Restored
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+    RefreshResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    CreateUserRequest:
+      type: object
+      required: [email, password, role, full_name]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, guard, resident]
+        full_name:
+          type: string
+        plot_number:
+          type: string
+          description: Участок (обязателен для resident)
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, guard, resident]
+        full_name:
+          type: string
+        password:
+          type: string
+        plot_number:
+          type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        role:
+          type: string
+        full_name:
+          type: string
+        plot_number:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+          nullable: true
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+    PassRequest:
+      type: object
+      required: [plate_number]
+      properties:
+        owner_user_id:
+          type: string
+          format: uuid
+        plate_number:
+          type: string
+        vehicle_brand:
+          type: string
+        vehicle_color:
+          type: string
+        status:
+          type: string
+    Pass:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_user_id:
+          type: string
+          format: uuid
+        owner_full_name:
+          type: string
+          nullable: true
+        owner_plot_number:
+          type: string
+          nullable: true
+        plate_number:
+          type: string
+        vehicle_brand:
+          type: string
+          nullable: true
+        vehicle_color:
+          type: string
+          nullable: true
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+          nullable: true
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+    GuestRequestPayload:
+      type: object
+      required: [guest_full_name, plate_number, valid_from, valid_to]
+      properties:
+        resident_user_id:
+          type: string
+          format: uuid
+        guest_full_name:
+          type: string
+        plate_number:
+          type: string
+        valid_from:
+          type: string
+          format: date-time
+        valid_to:
+          type: string
+          format: date-time
+        status:
+          type: string
+    GuestRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        resident_user_id:
+          type: string
+          format: uuid
+        guest_full_name:
+          type: string
+        plate_number:
+          type: string
+        valid_from:
+          type: string
+          format: date-time
+        valid_to:
+          type: string
+          format: date-time
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          format: uuid
+          nullable: true
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+    EntryRequest:
+      type: object
+      properties:
+        comment:
+          type: string
+    EntryLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        pass_id:
+          type: string
+          format: uuid
+        guard_user_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        action_at:
+          type: string
+          format: date-time
+        comment:
+          type: string
+          nullable: true

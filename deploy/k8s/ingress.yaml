@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pipo-ingress
+  namespace: pipo
+spec:
+  rules:
+    - host: pipo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pipo-frontend
+                port:
+                  number: 80
+    - host: api.pipo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pipo-backend
+                port:
+                  number: 8080

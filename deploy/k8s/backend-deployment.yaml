@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pipo-backend
+  namespace: pipo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pipo-backend
+  template:
+    metadata:
+      labels:
+        app: pipo-backend
+    spec:
+      containers:
+        - name: backend
+          image: pipo-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: "prod"
+            - name: HTTP_ADDR
+              value: ":8080"
+            - name: DB_DSN
+              value: "postgres://postgres:postgres@pipo-postgres:5432/pipo?sslmode=disable"
+            - name: JWT_SECRET
+              value: "change-me-access"
+            - name: JWT_REFRESH_SECRET
+              value: "change-me-refresh"
+            - name: MIGRATE_ON_START
+              value: "true"
+            - name: BOOTSTRAP_ADMIN_EMAIL
+              value: "admin@example.com"
+            - name: BOOTSTRAP_ADMIN_PASSWORD
+              value: "admin123"
+            - name: BOOTSTRAP_ADMIN_NAME
+              value: "Администратор"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10

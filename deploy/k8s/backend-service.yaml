@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pipo-backend
+  namespace: pipo
+spec:
+  selector:
+    app: pipo-backend
+  ports:
+    - port: 8080
+      targetPort: 8080
