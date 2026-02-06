@@ -53,11 +53,12 @@ func setupService(t *testing.T) (*Service, func()) {
 	require.NoError(t, err)
 
 	dsn := fmt.Sprintf("postgres://postgres:postgres@%s:%s/pipo?sslmode=disable", host, port.Port())
+	require.NoError(t, waitForDB(dsn, 60*time.Second))
 
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	migrationsPath := filepath.Join(cwd, "..", "..", "db", "migrations")
-	require.NoError(t, repository.RunMigrations(dsn, migrationsPath))
+	require.NoError(t, runMigrationsWithRetry(dsn, migrationsPath, 60*time.Second))
 
 	db, err := repository.Open(dsn)
 	require.NoError(t, err)
@@ -71,6 +72,41 @@ func setupService(t *testing.T) (*Service, func()) {
 	}
 
 	return svc, cleanup
+}
+
+func waitForDB(dsn string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		db, err := repository.Open(dsn)
+		if err == nil {
+			_ = db.Close()
+			return nil
+		}
+		lastErr = err
+		time.Sleep(500 * time.Millisecond)
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("database did not become ready in %s", timeout)
+	}
+	return fmt.Errorf("wait for db: %w", lastErr)
+}
+
+func runMigrationsWithRetry(dsn, migrationsPath string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		err := repository.RunMigrations(dsn, migrationsPath)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		time.Sleep(500 * time.Millisecond)
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("migrations did not complete in %s", timeout)
+	}
+	return fmt.Errorf("run migrations with retry: %w", lastErr)
 }
 
 func TestServiceCRUDIntegration(t *testing.T) {
