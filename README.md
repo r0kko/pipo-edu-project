@@ -43,7 +43,7 @@ go run ./cmd/api
 3) Запустить фронтенд:
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -76,6 +76,51 @@ npm run dev
 go test ./...
 ```
 
+## CI/CD артефакт сборки
+GitHub Actions формирует runtime-артефакт backend для `push` в `main` и `tags`:
+- `pipo-backend-image-<sha>.tar.gz`
+- `pipo-backend-image-<sha>.sha256`
+
+Поведение workflow:
+- `pull_request`: проверки Go/frontend + проверка сборки backend docker image.
+- `push main`: проверки + smoke + публикация runtime-артефакта в Actions artifacts.
+- `push tag`: проверки + smoke + публикация runtime-артефакта в Actions artifacts.
+
+GHCR publish:
+- выполняется автоматически для `main` и `tags`;
+- image repo: `ghcr.io/<owner-lowercase>/pipo-backend`;
+- теги:
+  - всегда: `<git-sha>`;
+  - для `main`: `main`;
+  - для релизного тега: `<git-tag>`.
+
+Пример pull:
+```bash
+docker pull ghcr.io/<owner-lowercase>/pipo-backend:main
+docker pull ghcr.io/<owner-lowercase>/pipo-backend:<git-tag>
+docker pull ghcr.io/<owner-lowercase>/pipo-backend:<git-sha>
+```
+
+Где найти:
+- GitHub -> Actions -> нужный workflow run -> Artifacts.
+
+Проверка и загрузка образа:
+```bash
+sha256sum -c pipo-backend-image-<sha>.sha256
+gunzip -c pipo-backend-image-<sha>.tar.gz | docker load
+```
+
+Запуск образа:
+```bash
+docker run --rm -p 8080:8080 \
+  -e APP_ENV=dev \
+  -e HTTP_ADDR=:8080 \
+  -e DB_DSN='postgres://postgres:postgres@localhost:5432/pipo?sslmode=disable' \
+  -e JWT_SECRET='change-me-access' \
+  -e JWT_REFRESH_SECRET='change-me-refresh' \
+  -e MIGRATE_ON_START=true \
+  pipo-backend:<sha>
+```
 ## Kubernetes
 Манифесты находятся в `deploy/k8s/`. Включают:
 - Backend + Frontend deployments
