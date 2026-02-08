@@ -22,7 +22,7 @@ export function Layout({ title, children }: PropsWithChildren<LayoutProps>) {
       <AppBar position="static" sx={{ background: '#1A3D7C' }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
-            PIPO · Пропуска
+            Пропуска
           </Typography>
           <Typography variant="body2" sx={{ mr: 2, opacity: 0.85 }}>
             {user?.full_name} ({roleLabel(user?.role)})

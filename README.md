@@ -23,6 +23,9 @@ docker compose up --build
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (admin/admin)
 
+Grafana автоматически подхватывает дашборд `Project Overview` при старте:
+- Dashboard: `Project Overview`
+
 При старте создаётся администратор:
 - email: `admin@example.com`
 - password: `admin123`
