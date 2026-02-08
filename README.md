@@ -1,15 +1,13 @@
 # PIPO — система пропусков
 
-Учебный проект: веб‑приложение для управления пропусками на авто (российские номера). Три роли: `admin`, `guard`, `resident`.
+Учебный проекn - веб‑приложение для управления пропусками на авто. Для пользователей в проекте существуют три роли: `admin`, `guard`, `resident`.
 
-## Возможности
+## Реализованные требования
 - Аутентификация (JWT) и контроль доступа.
 - Полноценный REST API с CRUD для пользователей, пропусков и гостевых заявок.
-- Soft delete (`deleted_at`) и аудит (`created_by`, `updated_by`).
 - PostgreSQL + миграции + типобезопасные запросы (sqlc).
-- Логирование и метрики Prometheus.
+- Логирование и метрики реализованы с помощью Prometheus.
 - Swagger UI (`/docs`).
-- Docker Compose и Kubernetes манифесты.
 
 ## Быстрый старт (Docker Compose)
 ```bash
@@ -62,7 +60,7 @@ npm run dev
 - `BOOTSTRAP_ADMIN_NAME`
 
 ## SQLC и миграции
-- Миграции: `db/migrations/` (golang-migrate)
+- Миграции: `db/migrations/`
 - Запросы: `db/queries/`
 - Конфиг sqlc: `sqlc.yaml`
 
@@ -86,41 +84,6 @@ GitHub Actions формирует runtime-артефакт backend для `push`
 - `push main`: проверки + smoke + публикация runtime-артефакта в Actions artifacts.
 - `push tag`: проверки + smoke + публикация runtime-артефакта в Actions artifacts.
 
-GHCR publish:
-- выполняется автоматически для `main` и `tags`;
-- image repo: `ghcr.io/<owner-lowercase>/pipo-backend`;
-- теги:
-  - всегда: `<git-sha>`;
-  - для `main`: `main`;
-  - для релизного тега: `<git-tag>`.
-
-Пример pull:
-```bash
-docker pull ghcr.io/<owner-lowercase>/pipo-backend:main
-docker pull ghcr.io/<owner-lowercase>/pipo-backend:<git-tag>
-docker pull ghcr.io/<owner-lowercase>/pipo-backend:<git-sha>
-```
-
-Где найти:
-- GitHub -> Actions -> нужный workflow run -> Artifacts.
-
-Проверка и загрузка образа:
-```bash
-sha256sum -c pipo-backend-image-<sha>.sha256
-gunzip -c pipo-backend-image-<sha>.tar.gz | docker load
-```
-
-Запуск образа:
-```bash
-docker run --rm -p 8080:8080 \
-  -e APP_ENV=dev \
-  -e HTTP_ADDR=:8080 \
-  -e DB_DSN='postgres://postgres:postgres@localhost:5432/pipo?sslmode=disable' \
-  -e JWT_SECRET='change-me-access' \
-  -e JWT_REFRESH_SECRET='change-me-refresh' \
-  -e MIGRATE_ON_START=true \
-  pipo-backend:<sha>
-```
 ## Kubernetes
 Манифесты находятся в `deploy/k8s/`. Включают:
 - Backend + Frontend deployments
