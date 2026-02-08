@@ -2,6 +2,7 @@ import { PropsWithChildren } from 'react';
 import { AppBar, Box, Button, Container, Toolbar, Typography } from '@mui/material';
 import { authStore } from '../store/auth';
 import { useNavigate } from 'react-router-dom';
+import { roleLabel } from '../utils/roles';
 
 interface LayoutProps {
   title: string;
@@ -24,7 +25,7 @@ export function Layout({ title, children }: PropsWithChildren<LayoutProps>) {
             PIPO · Пропуска
           </Typography>
           <Typography variant="body2" sx={{ mr: 2, opacity: 0.85 }}>
-            {user?.full_name} ({user?.role})
+            {user?.full_name} ({roleLabel(user?.role)})
             {user?.plot_number ? ` · участок ${user.plot_number}` : ''}
           </Typography>
           <Button color="inherit" onClick={handleLogout}>

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     role TEXT NOT NULL,
     full_name TEXT NOT NULL,
     plot_number TEXT NULL,
+    blocked_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID NULL REFERENCES users(id) ON DELETE SET NULL,
@@ -53,6 +54,7 @@ CREATE TABLE IF NOT EXISTS entry_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users (deleted_at);
+CREATE INDEX IF NOT EXISTS idx_users_blocked_at ON users (blocked_at);
 CREATE INDEX IF NOT EXISTS idx_passes_deleted_at ON passes (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_guest_requests_deleted_at ON guest_requests (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_passes_plate_number ON passes (plate_number);

@@ -56,6 +56,7 @@ type User struct {
 	Role         string         `json:"role"`
 	FullName     string         `json:"full_name"`
 	PlotNumber   sql.NullString `json:"plot_number"`
+	BlockedAt    sql.NullTime   `json:"blocked_at"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	CreatedBy    uuid.NullUUID  `json:"created_by"`

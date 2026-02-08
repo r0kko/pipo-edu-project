@@ -55,6 +55,14 @@ func (s stubService) RestoreUser(ctx context.Context, id uuid.UUID, actor uuid.U
 	return nil
 }
 
+func (s stubService) BlockUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error {
+	return nil
+}
+
+func (s stubService) UnblockUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error {
+	return nil
+}
+
 func (s stubService) CreatePass(ctx context.Context, input service.PassCreateInput) (repo.Pass, error) {
 	return repo.Pass{ID: uuid.New(), OwnerUserID: input.OwnerID, PlateNumber: input.PlateNumber, Status: input.Status, CreatedAt: time.Now(), UpdatedAt: time.Now()}, nil
 }
@@ -181,6 +189,18 @@ func TestResidentCannotAccessUsers(t *testing.T) {
 	router.ServeHTTP(resp, req)
 	if resp.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d", resp.Code)
+	}
+}
+
+func TestAdminCanBlockUser(t *testing.T) {
+	router := setupRouter()
+	req := httptest.NewRequest(http.MethodPost, "/users/"+uuid.New().String()+"/block", nil)
+	req.Header.Set("Authorization", "Bearer "+newAuthToken(auth.RoleAdmin))
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.Code)
 	}
 }
 

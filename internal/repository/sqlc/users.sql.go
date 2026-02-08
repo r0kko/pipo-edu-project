@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, role, full_name, plot_number, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, email, password_hash, role, full_name, plot_number, created_at, updated_at, created_by, updated_by, deleted_at
+RETURNING id, email, password_hash, role, full_name, plot_number, blocked_at, created_at, updated_at, created_by, updated_by, deleted_at
 `
 
 type CreateUserParams struct {
@@ -46,6 +46,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Role,
 		&i.FullName,
 		&i.PlotNumber,
+		&i.BlockedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -56,7 +57,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, role, full_name, plot_number, created_at, updated_at, created_by, updated_by, deleted_at FROM users WHERE email = $1 AND deleted_at IS NULL
+SELECT id, email, password_hash, role, full_name, plot_number, blocked_at, created_at, updated_at, created_by, updated_by, deleted_at FROM users WHERE email = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -69,6 +70,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Role,
 		&i.FullName,
 		&i.PlotNumber,
+		&i.BlockedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -79,7 +81,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, role, full_name, plot_number, created_at, updated_at, created_by, updated_by, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL
+SELECT id, email, password_hash, role, full_name, plot_number, blocked_at, created_at, updated_at, created_by, updated_by, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -92,6 +94,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Role,
 		&i.FullName,
 		&i.PlotNumber,
+		&i.BlockedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -102,7 +105,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByIDAny = `-- name: GetUserByIDAny :one
-SELECT id, email, password_hash, role, full_name, plot_number, created_at, updated_at, created_by, updated_by, deleted_at FROM users WHERE id = $1
+SELECT id, email, password_hash, role, full_name, plot_number, blocked_at, created_at, updated_at, created_by, updated_by, deleted_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByIDAny(ctx context.Context, id uuid.UUID) (User, error) {
@@ -115,6 +118,7 @@ func (q *Queries) GetUserByIDAny(ctx context.Context, id uuid.UUID) (User, error
 		&i.Role,
 		&i.FullName,
 		&i.PlotNumber,
+		&i.BlockedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -125,7 +129,7 @@ func (q *Queries) GetUserByIDAny(ctx context.Context, id uuid.UUID) (User, error
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, role, full_name, plot_number, created_at, updated_at, created_by, updated_by, deleted_at FROM users
+SELECT id, email, password_hash, role, full_name, plot_number, blocked_at, created_at, updated_at, created_by, updated_by, deleted_at FROM users
 WHERE ($1::bool) OR deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -153,6 +157,7 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.Role,
 			&i.FullName,
 			&i.PlotNumber,
+			&i.BlockedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CreatedBy,
@@ -190,6 +195,24 @@ func (q *Queries) RestoreUser(ctx context.Context, arg RestoreUserParams) error 
 	return err
 }
 
+const blockUser = `-- name: BlockUser :exec
+UPDATE users
+SET blocked_at = now(),
+    updated_at = now(),
+    updated_by = $2
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type BlockUserParams struct {
+	ID        uuid.UUID     `json:"id"`
+	UpdatedBy uuid.NullUUID `json:"updated_by"`
+}
+
+func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) error {
+	_, err := q.db.ExecContext(ctx, blockUser, arg.ID, arg.UpdatedBy)
+	return err
+}
+
 const softDeleteUser = `-- name: SoftDeleteUser :exec
 UPDATE users
 SET deleted_at = now(),
@@ -217,7 +240,7 @@ SET email = $2,
     updated_at = now(),
     updated_by = $6
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, email, password_hash, role, full_name, plot_number, created_at, updated_at, created_by, updated_by, deleted_at
+RETURNING id, email, password_hash, role, full_name, plot_number, blocked_at, created_at, updated_at, created_by, updated_by, deleted_at
 `
 
 type UpdateUserParams struct {
@@ -246,6 +269,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Role,
 		&i.FullName,
 		&i.PlotNumber,
+		&i.BlockedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -261,7 +285,7 @@ SET password_hash = $2,
     updated_at = now(),
     updated_by = $3
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, email, password_hash, role, full_name, plot_number, created_at, updated_at, created_by, updated_by, deleted_at
+RETURNING id, email, password_hash, role, full_name, plot_number, blocked_at, created_at, updated_at, created_by, updated_by, deleted_at
 `
 
 type UpdateUserPasswordParams struct {
@@ -280,6 +304,7 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.Role,
 		&i.FullName,
 		&i.PlotNumber,
+		&i.BlockedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CreatedBy,
@@ -287,4 +312,22 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const unblockUser = `-- name: UnblockUser :exec
+UPDATE users
+SET blocked_at = NULL,
+    updated_at = now(),
+    updated_by = $2
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UnblockUserParams struct {
+	ID        uuid.UUID     `json:"id"`
+	UpdatedBy uuid.NullUUID `json:"updated_by"`
+}
+
+func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) error {
+	_, err := q.db.ExecContext(ctx, unblockUser, arg.ID, arg.UpdatedBy)
+	return err
 }

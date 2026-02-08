@@ -69,6 +69,8 @@ func NewRouter(handler *Handler) http.Handler {
 			r.Patch("/{id}", handler.HandleUpdateUser)
 			r.Delete("/{id}", handler.HandleDeleteUser)
 			r.Post("/{id}/restore", handler.HandleRestoreUser)
+			r.Post("/{id}/block", handler.HandleBlockUser)
+			r.Post("/{id}/unblock", handler.HandleUnblockUser)
 		})
 
 		r.Route("/passes", func(r chi.Router) {

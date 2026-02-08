@@ -38,7 +38,10 @@ func setupService(t *testing.T) (*Service, func()) {
 			"POSTGRES_USER":     "postgres",
 			"POSTGRES_PASSWORD": "postgres",
 		},
-		WaitingFor: wait.ForListeningPort("5432/tcp").WithStartupTimeout(60 * time.Second),
+		WaitingFor: wait.ForAll(
+			wait.ForListeningPort("5432/tcp"),
+			wait.ForLog("database system is ready to accept connections"),
+		).WithStartupTimeout(90 * time.Second),
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -136,6 +139,13 @@ func TestServiceCRUDIntegration(t *testing.T) {
 		PlotNumber: "12A",
 		ActorID:    admin.ID,
 	}, residentHash)
+	require.NoError(t, err)
+
+	require.NoError(t, svc.BlockUser(ctx, resident.ID, admin.ID))
+	_, err = svc.Authenticate(ctx, resident.Email, "resident123")
+	require.ErrorIs(t, err, ErrBlocked)
+	require.NoError(t, svc.UnblockUser(ctx, resident.ID, admin.ID))
+	_, err = svc.Authenticate(ctx, resident.Email, "resident123")
 	require.NoError(t, err)
 
 	users, err := svc.ListUsers(ctx, false, 10, 0)

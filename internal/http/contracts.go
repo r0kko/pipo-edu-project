@@ -23,6 +23,8 @@ type UserService interface {
 	UpdateUserPassword(ctx context.Context, input service.UserPasswordInput, passwordHash string) (repo.User, error)
 	SoftDeleteUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error
 	RestoreUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error
+	BlockUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error
+	UnblockUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error
 }
 
 type PassService interface {

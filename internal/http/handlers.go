@@ -37,6 +37,7 @@ type UserResponse struct {
 	Role       string     `json:"role"`
 	FullName   string     `json:"full_name"`
 	PlotNumber *string    `json:"plot_number,omitempty"`
+	BlockedAt  *time.Time `json:"blocked_at,omitempty"`
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
 	CreatedBy  *uuid.UUID `json:"created_by,omitempty"`
@@ -144,6 +145,15 @@ func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	userID, err := uuid.Parse(claims.UserID)
 	if err != nil {
+		WriteError(w, http.StatusUnauthorized, "invalid token")
+		return
+	}
+	user, err := h.Service.GetUserAny(r.Context(), userID)
+	if err != nil {
+		WriteError(w, http.StatusUnauthorized, "invalid token")
+		return
+	}
+	if user.DeletedAt.Valid || user.BlockedAt.Valid {
 		WriteError(w, http.StatusUnauthorized, "invalid token")
 		return
 	}
@@ -318,6 +328,40 @@ func (h *Handler) HandleRestoreUser(w http.ResponseWriter, r *http.Request) {
 		h.Metrics.Users.WithLabelValues("restored").Inc()
 	}
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "restored"})
+}
+
+func (h *Handler) HandleBlockUser(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	actorID := actorFromContext(r)
+	if err := h.Service.BlockUser(r.Context(), id, actorID); err != nil {
+		WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if h.Metrics != nil {
+		h.Metrics.Users.WithLabelValues("blocked").Inc()
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "blocked"})
+}
+
+func (h *Handler) HandleUnblockUser(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	actorID := actorFromContext(r)
+	if err := h.Service.UnblockUser(r.Context(), id, actorID); err != nil {
+		WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if h.Metrics != nil {
+		h.Metrics.Users.WithLabelValues("unblocked").Inc()
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "unblocked"})
 }
 
 func (h *Handler) HandleCreatePass(w http.ResponseWriter, r *http.Request) {
@@ -835,6 +879,9 @@ func mapUser(user repo.User) UserResponse {
 	}
 	if user.PlotNumber.Valid {
 		resp.PlotNumber = &user.PlotNumber.String
+	}
+	if user.BlockedAt.Valid {
+		resp.BlockedAt = &user.BlockedAt.Time
 	}
 	if user.CreatedBy.Valid {
 		resp.CreatedBy = &user.CreatedBy.UUID

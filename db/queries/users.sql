@@ -50,3 +50,17 @@ SET deleted_at = NULL,
     updated_at = now(),
     updated_by = $2
 WHERE id = $1;
+
+-- name: BlockUser :exec
+UPDATE users
+SET blocked_at = now(),
+    updated_at = now(),
+    updated_by = $2
+WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: UnblockUser :exec
+UPDATE users
+SET blocked_at = NULL,
+    updated_at = now(),
+    updated_by = $2
+WHERE id = $1 AND deleted_at IS NULL;

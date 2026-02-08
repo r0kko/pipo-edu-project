@@ -139,6 +139,26 @@ paths:
       responses:
         '200':
           description: Restored
+  /users/{id}/block:
+    post:
+      summary: Block user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Blocked
+  /users/{id}/unblock:
+    post:
+      summary: Unblock user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Unblocked
   /passes:
     get:
       summary: List passes
@@ -489,6 +509,10 @@ components:
           type: string
         plot_number:
           type: string
+          nullable: true
+        blocked_at:
+          type: string
+          format: date-time
           nullable: true
         created_at:
           type: string

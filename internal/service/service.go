@@ -16,6 +16,7 @@ import (
 var (
 	ErrNotFound     = errors.New("not found")
 	ErrForbidden    = errors.New("forbidden")
+	ErrBlocked      = errors.New("blocked")
 	ErrInvalidInput = errors.New("invalid input")
 	ErrInvalidRange = errors.New("invalid date range")
 	ErrInvalidPlate = errors.New("invalid plate number")
@@ -105,6 +106,9 @@ func (s *Service) Authenticate(ctx context.Context, email, password string) (rep
 	}
 	if !ok {
 		return repo.User{}, ErrForbidden
+	}
+	if user.BlockedAt.Valid {
+		return repo.User{}, ErrBlocked
 	}
 	return user, nil
 }
@@ -218,6 +222,14 @@ func (s *Service) SoftDeleteUser(ctx context.Context, id uuid.UUID, actor uuid.U
 
 func (s *Service) RestoreUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error {
 	return s.q.RestoreUser(ctx, repo.RestoreUserParams{ID: id, UpdatedBy: uuid.NullUUID{UUID: actor, Valid: actor != uuid.Nil}})
+}
+
+func (s *Service) BlockUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error {
+	return s.q.BlockUser(ctx, repo.BlockUserParams{ID: id, UpdatedBy: uuid.NullUUID{UUID: actor, Valid: actor != uuid.Nil}})
+}
+
+func (s *Service) UnblockUser(ctx context.Context, id uuid.UUID, actor uuid.UUID) error {
+	return s.q.UnblockUser(ctx, repo.UnblockUserParams{ID: id, UpdatedBy: uuid.NullUUID{UUID: actor, Valid: actor != uuid.Nil}})
 }
 
 func (s *Service) CreatePass(ctx context.Context, input PassCreateInput) (repo.Pass, error) {
