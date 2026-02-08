@@ -28,7 +28,7 @@ export default function LoginPage() {
       } else {
         navigate('/resident');
       }
-    } catch (err) {
+    } catch {
       setError('Неверный логин или пароль');
     }
   };

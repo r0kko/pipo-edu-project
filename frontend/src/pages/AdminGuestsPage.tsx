@@ -122,7 +122,10 @@ export default function AdminGuestsPage() {
   const residents = (usersQuery.data ?? [])
     .filter((user) => user.role === 'resident' && !user.deleted_at && !user.blocked_at)
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
-  const userByID = new Map((usersQuery.data ?? []).map((user) => [user.id, user]));
+  const userByID = useMemo(
+    () => new Map((usersQuery.data ?? []).map((user) => [user.id, user])),
+    [usersQuery.data]
+  );
 
   const filteredGuests = useMemo(() => {
     const q = search.trim().toLowerCase();
