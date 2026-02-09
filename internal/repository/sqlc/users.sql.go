@@ -12,6 +12,24 @@ import (
 	"github.com/google/uuid"
 )
 
+const blockUser = `-- name: BlockUser :exec
+UPDATE users
+SET blocked_at = now(),
+    updated_at = now(),
+    updated_by = $2
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type BlockUserParams struct {
+	ID        uuid.UUID     `json:"id"`
+	UpdatedBy uuid.NullUUID `json:"updated_by"`
+}
+
+func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) error {
+	_, err := q.db.ExecContext(ctx, blockUser, arg.ID, arg.UpdatedBy)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, role, full_name, plot_number, created_by, updated_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -195,24 +213,6 @@ func (q *Queries) RestoreUser(ctx context.Context, arg RestoreUserParams) error 
 	return err
 }
 
-const blockUser = `-- name: BlockUser :exec
-UPDATE users
-SET blocked_at = now(),
-    updated_at = now(),
-    updated_by = $2
-WHERE id = $1 AND deleted_at IS NULL
-`
-
-type BlockUserParams struct {
-	ID        uuid.UUID     `json:"id"`
-	UpdatedBy uuid.NullUUID `json:"updated_by"`
-}
-
-func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) error {
-	_, err := q.db.ExecContext(ctx, blockUser, arg.ID, arg.UpdatedBy)
-	return err
-}
-
 const softDeleteUser = `-- name: SoftDeleteUser :exec
 UPDATE users
 SET deleted_at = now(),
@@ -228,6 +228,24 @@ type SoftDeleteUserParams struct {
 
 func (q *Queries) SoftDeleteUser(ctx context.Context, arg SoftDeleteUserParams) error {
 	_, err := q.db.ExecContext(ctx, softDeleteUser, arg.ID, arg.UpdatedBy)
+	return err
+}
+
+const unblockUser = `-- name: UnblockUser :exec
+UPDATE users
+SET blocked_at = NULL,
+    updated_at = now(),
+    updated_by = $2
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type UnblockUserParams struct {
+	ID        uuid.UUID     `json:"id"`
+	UpdatedBy uuid.NullUUID `json:"updated_by"`
+}
+
+func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) error {
+	_, err := q.db.ExecContext(ctx, unblockUser, arg.ID, arg.UpdatedBy)
 	return err
 }
 
@@ -312,22 +330,4 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.DeletedAt,
 	)
 	return i, err
-}
-
-const unblockUser = `-- name: UnblockUser :exec
-UPDATE users
-SET blocked_at = NULL,
-    updated_at = now(),
-    updated_by = $2
-WHERE id = $1 AND deleted_at IS NULL
-`
-
-type UnblockUserParams struct {
-	ID        uuid.UUID     `json:"id"`
-	UpdatedBy uuid.NullUUID `json:"updated_by"`
-}
-
-func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) error {
-	_, err := q.db.ExecContext(ctx, unblockUser, arg.ID, arg.UpdatedBy)
-	return err
 }
