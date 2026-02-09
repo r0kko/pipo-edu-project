@@ -73,9 +73,26 @@ npm run dev
 ```
 
 ## Тесты
+Unit:
+```bash
+go test ./internal/service -run 'TestServiceUnit|TestValidate'
+go test ./internal/http
+```
+
+Functional / integration (требуется Docker):
+```bash
+go test -tags=integration ./internal/service ./internal/http
+```
+
+Полная команда:
 ```bash
 go test ./...
+go test -tags=integration ./internal/service ./internal/http
 ```
+
+Пороговые значения покрытия в CI:
+- `internal/service` unit: не ниже 85%
+- `internal/http` combined (unit + integration): не ниже 80%
 
 ## CI/CD артефакт сборки
 GitHub Actions формирует runtime-артефакт backend для `push` в `main` и `tags`:

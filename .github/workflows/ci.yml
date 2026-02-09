@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  go_verify:
+  go_unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,8 +28,93 @@ jobs:
       - name: Generate sqlc
         run: sqlc generate
 
-      - name: Go tests
-        run: go test ./...
+      - name: Ensure sqlc output committed
+        run: git diff --exit-code
+
+      - name: Service unit tests
+        run: go test ./internal/service -run 'TestServiceUnit|TestValidate' -coverprofile=service_unit.out
+
+      - name: HTTP unit tests
+        run: go test ./internal/http -coverprofile=http_unit.out
+
+      - name: Upload unit coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: |
+            service_unit.out
+            http_unit.out
+
+  go_integration:
+    runs-on: ubuntu-latest
+    needs: [go_unit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.7"
+
+      - name: Integration tests (json)
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -tags=integration -json ./internal/service ./internal/http | tee go-integration.json
+          if grep -q '"Action":"skip"' go-integration.json; then
+            echo "Integration suite contains skipped tests"
+            exit 1
+          fi
+
+      - name: Integration coverage (HTTP)
+        run: go test -tags=integration ./internal/http -coverprofile=http_integration.out
+
+      - name: Upload integration coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage
+          path: |
+            go-integration.json
+            http_integration.out
+
+  coverage_gate:
+    runs-on: ubuntu-latest
+    needs: [go_unit, go_integration]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.7"
+
+      - name: Download unit coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-coverage
+          path: coverage
+
+      - name: Download integration coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-coverage
+          path: coverage
+
+      - name: Evaluate coverage thresholds
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          service_cov=$(go tool cover -func=coverage/service_unit.out | awk '/^total:/ {print substr($3, 1, length($3)-1)}')
+          http_unit_cov=$(go tool cover -func=coverage/http_unit.out | awk '/^total:/ {print substr($3, 1, length($3)-1)}')
+          http_int_cov=$(go tool cover -func=coverage/http_integration.out | awk '/^total:/ {print substr($3, 1, length($3)-1)}')
+
+          echo "service unit coverage: ${service_cov}%"
+          echo "http unit coverage: ${http_unit_cov}%"
+          echo "http integration coverage: ${http_int_cov}%"
+
+          awk -v v="$service_cov" 'BEGIN { if (v < 85.0) { print "service unit coverage below 85%"; exit 1 } }'
+          awk -v i="$http_int_cov" 'BEGIN { if (i < 80.0) { print "http combined (unit+integration) coverage below 80%"; exit 1 } }'
 
   frontend_verify:
     runs-on: ubuntu-latest
@@ -55,7 +140,7 @@ jobs:
   pr_backend_image_build:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    needs: [go_verify, frontend_verify]
+    needs: [coverage_gate, frontend_verify]
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +152,7 @@ jobs:
 
   package_runtime_artifact:
     runs-on: ubuntu-latest
-    needs: [go_verify, frontend_verify]
+    needs: [coverage_gate, frontend_verify]
     if: github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref, 'refs/tags/'))
     permissions:
       contents: read

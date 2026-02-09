@@ -23,10 +23,10 @@ var (
 )
 
 type Service struct {
-	q *repo.Queries
+	q ServiceStore
 }
 
-func New(q *repo.Queries) *Service {
+func New(q ServiceStore) *Service {
 	return &Service{q: q}
 }
 

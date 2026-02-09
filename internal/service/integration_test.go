@@ -1,125 +1,28 @@
+//go:build integration
+// +build integration
+
 package service
 
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 
 	"pipo-edu-project/internal/auth"
-	"pipo-edu-project/internal/repository"
-	repo "pipo-edu-project/internal/repository/sqlc"
+	"pipo-edu-project/internal/testutil"
 )
 
-func setupService(t *testing.T) (*Service, func()) {
-	t.Helper()
-	ctx := context.Background()
-
-	if os.Getenv("TESTCONTAINERS_DISABLED") == "true" {
-		t.Skip("testcontainers disabled")
-	}
-	if _, err := os.Stat("/var/run/docker.sock"); err != nil && os.Getenv("DOCKER_HOST") == "" {
-		t.Skip("docker socket not available")
-	}
-
-	req := testcontainers.ContainerRequest{
-		Image:        "postgres:16-alpine",
-		ExposedPorts: []string{"5432/tcp"},
-		Env: map[string]string{
-			"POSTGRES_DB":       "pipo",
-			"POSTGRES_USER":     "postgres",
-			"POSTGRES_PASSWORD": "postgres",
-		},
-		WaitingFor: wait.ForAll(
-			wait.ForListeningPort("5432/tcp"),
-			wait.ForLog("database system is ready to accept connections"),
-		).WithStartupTimeout(90 * time.Second),
-	}
-
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	require.NoError(t, err)
-
-	host, err := container.Host(ctx)
-	require.NoError(t, err)
-	port, err := container.MappedPort(ctx, "5432")
-	require.NoError(t, err)
-
-	dsn := fmt.Sprintf("postgres://postgres:postgres@%s:%s/pipo?sslmode=disable", host, port.Port())
-	require.NoError(t, waitForDB(dsn, 60*time.Second))
-
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	migrationsPath := filepath.Join(cwd, "..", "..", "db", "migrations")
-	require.NoError(t, runMigrationsWithRetry(dsn, migrationsPath, 60*time.Second))
-
-	db, err := repository.Open(dsn)
-	require.NoError(t, err)
-
-	queries := repo.New(db)
-	svc := New(queries)
-
-	cleanup := func() {
-		_ = db.Close()
-		_ = container.Terminate(ctx)
-	}
-
-	return svc, cleanup
-}
-
-func waitForDB(dsn string, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	var lastErr error
-	for time.Now().Before(deadline) {
-		db, err := repository.Open(dsn)
-		if err == nil {
-			_ = db.Close()
-			return nil
-		}
-		lastErr = err
-		time.Sleep(500 * time.Millisecond)
-	}
-	if lastErr == nil {
-		lastErr = fmt.Errorf("database did not become ready in %s", timeout)
-	}
-	return fmt.Errorf("wait for db: %w", lastErr)
-}
-
-func runMigrationsWithRetry(dsn, migrationsPath string, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	var lastErr error
-	for time.Now().Before(deadline) {
-		err := repository.RunMigrations(dsn, migrationsPath)
-		if err == nil {
-			return nil
-		}
-		lastErr = err
-		time.Sleep(500 * time.Millisecond)
-	}
-	if lastErr == nil {
-		lastErr = fmt.Errorf("migrations did not complete in %s", timeout)
-	}
-	return fmt.Errorf("run migrations with retry: %w", lastErr)
-}
-
 func TestServiceCRUDIntegration(t *testing.T) {
-	svc, cleanup := setupService(t)
-	defer cleanup()
+	tdb := testutil.StartPostgres(t)
+	svc := New(tdb.Queries)
 	ctx := context.Background()
 
 	adminHash, err := auth.HashPassword("admin123")
 	require.NoError(t, err)
-
 	admin, err := svc.CreateUser(ctx, UserCreateInput{
 		Email:    "admin@example.com",
 		Password: "admin123",
